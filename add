@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+"""Add an essay to essays.json.
+
+    ./add URL --why "..." [--tags a,b] [--title ...] [--author ...] [--no-snapshot]
+    ./add --backfill-snapshots
+
+Standard library only, so it runs the same on this machine and in GitHub Actions.
+"""
+import argparse
+import datetime as dt
+import gzip
+import html
+import json
+import os
+import re
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+DATA = os.path.join(HERE, "essays.json")
+ARCHIVE = os.path.join(HERE, "archive")
+UA = "Mozilla/5.0 (compatible; insightfulessays-add/1.0; +https://insightfulessays.com)"
+
+
+def fetch(url, timeout=30):
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Encoding": "gzip"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        raw = r.read()
+        if r.headers.get("Content-Encoding") == "gzip":
+            raw = gzip.decompress(raw)
+        charset = r.headers.get_content_charset() or "utf-8"
+        return raw.decode(charset, errors="replace"), r.geturl()
+
+
+def meta(page, *names):
+    """First matching <meta name|property=NAME content=...>, in the order given."""
+    for name in names:
+        m = re.search(
+            r'<meta[^>]+(?:name|property)=["\']%s["\'][^>]+content=["\']([^"\']*)["\']' % re.escape(name),
+            page, re.I,
+        ) or re.search(
+            r'<meta[^>]+content=["\']([^"\']*)["\'][^>]+(?:name|property)=["\']%s["\']' % re.escape(name),
+            page, re.I,
+        )
+        if m and m.group(1).strip():
+            return html.unescape(m.group(1).strip())
+    return None
+
+
+def guess_title(page):
+    t = meta(page, "og:title", "twitter:title")
+    if not t:
+        m = re.search(r"<title[^>]*>(.*?)</title>", page, re.I | re.S)
+        t = html.unescape(re.sub(r"\s+", " ", m.group(1)).strip()) if m else None
+    if t:
+        # Drop trailing " | Site Name" / " - Site Name" style suffixes.
+        t = re.split(r"\s+[|–—-]\s+", t)[0].strip() or t
+    return t
+
+
+def guess_author(page):
+    return meta(page, "author", "article:author", "dc.creator", "citation_author", "parsely-author")
+
+
+def slugify(s):
+    s = re.sub(r"[^a-z0-9]+", "-", re.sub(r"['\u2019]", "", s.lower())).strip("-")
+    return s[:60] or "essay"
+
+
+def wayback_save(url):
+    """Ask the Wayback Machine to save URL now. Returns the snapshot URL or None."""
+    try:
+        req = urllib.request.Request("https://web.archive.org/save/" + url, headers={"User-Agent": UA})
+        with urllib.request.urlopen(req, timeout=120) as r:
+            loc = r.headers.get("Content-Location") or r.geturl()
+            if loc.startswith("/"):
+                loc = "https://web.archive.org" + loc
+            if "web.archive.org/web/" in loc:
+                return loc
+    except urllib.error.HTTPError as e:
+        # 429 / 5xx from archive.org are common; fall back to the "latest" form.
+        sys.stderr.write(f"wayback save returned {e.code}; recording the latest-snapshot link instead\n")
+    except Exception as e:  # noqa: BLE001
+        sys.stderr.write(f"wayback save failed: {e}; recording the latest-snapshot link instead\n")
+    return "https://web.archive.org/web/2/" + url
+
+
+def snapshot(entry, page=None):
+    os.makedirs(ARCHIVE, exist_ok=True)
+    path = os.path.join(ARCHIVE, entry["id"] + ".html")
+    if page is None:
+        page, _ = fetch(entry["url"])
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(f"<!-- saved {dt.date.today().isoformat()} from {entry['url']} -->\n")
+        f.write(page)
+    return path
+
+
+def load():
+    with open(DATA, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save(entries):
+    with open(DATA, "w", encoding="utf-8") as f:
+        json.dump(entries, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("url", nargs="?")
+    ap.add_argument("--why", help="what makes this essay special (the whole point)")
+    ap.add_argument("--tags", default="", help="comma separated")
+    ap.add_argument("--title")
+    ap.add_argument("--author")
+    ap.add_argument("--no-snapshot", action="store_true", help="skip the private local copy (CI)")
+    ap.add_argument("--backfill-snapshots", action="store_true")
+    a = ap.parse_args()
+
+    entries = load()
+
+    if a.backfill_snapshots:
+        for e in entries:
+            path = os.path.join(ARCHIVE, e["id"] + ".html")
+            if os.path.exists(path):
+                continue
+            try:
+                snapshot(e)
+                print("saved", path)
+            except Exception as ex:  # noqa: BLE001
+                print("FAILED", e["url"], ex, file=sys.stderr)
+        return
+
+    if not a.url or not a.why:
+        ap.error("URL and --why are required")
+    url = a.url.strip()
+    if any(e["url"] == url for e in entries):
+        sys.exit(f"already listed: {url}")
+
+    page = None
+    title, author = a.title, a.author
+    try:
+        page, final = fetch(url)
+        title = title or guess_title(page)
+        author = author or guess_author(page)
+    except Exception as ex:  # noqa: BLE001
+        print(f"could not fetch {url}: {ex}", file=sys.stderr)
+        if not title:
+            sys.exit("fetch failed and no --title given")
+
+    entry = {
+        "id": slugify(title),
+        "title": title,
+        "author": author,
+        "url": url,
+        "source": urllib.parse.urlsplit(url).netloc.replace("www.", ""),
+        "added": dt.date.today().isoformat(),
+        "tags": [t.strip() for t in a.tags.split(",") if t.strip()],
+        "why": a.why.strip(),
+        "wayback": wayback_save(url),
+    }
+    if any(e["id"] == entry["id"] for e in entries):
+        entry["id"] += "-" + entry["added"]
+
+    if page is not None and not a.no_snapshot:
+        try:
+            snapshot(entry, page)
+        except Exception as ex:  # noqa: BLE001
+            print(f"snapshot failed: {ex}", file=sys.stderr)
+
+    entries.append(entry)
+    save(entries)
+    print(json.dumps(entry, indent=2, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()

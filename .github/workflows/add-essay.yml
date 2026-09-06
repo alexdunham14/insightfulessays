@@ -1,0 +1,51 @@
+name: Add essay from issue
+on:
+  issues:
+    types: [opened]
+permissions:
+  contents: write
+  issues: write
+jobs:
+  add:
+    if: contains(github.event.issue.labels.*.name, 'essay')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse the issue form and run ./add
+        id: add
+        env:
+          BODY: ${{ github.event.issue.body }}
+        run: |
+          python3 - <<'PY'
+          import os, re, subprocess, sys
+          body = os.environ["BODY"]
+          fields = {}
+          for m in re.finditer(r"^### (.+?)\s*\n(.*?)(?=^### |\Z)", body, re.M | re.S):
+              fields[m.group(1).strip().lower()] = m.group(2).strip()
+          def get(k):
+              v = fields.get(k, "")
+              return "" if v in ("", "_No response_") else v
+          cmd = ["./add", get("url"), "--why", get("why"), "--tags", get("tags"), "--no-snapshot"]
+          if get("title (optional, overrides the page's own)"):
+              cmd += ["--title", get("title (optional, overrides the page's own)")]
+          if get("author (optional, overrides the page's own)"):
+              cmd += ["--author", get("author (optional, overrides the page's own)")]
+          sys.exit(subprocess.call(cmd))
+          PY
+      - name: Commit
+        run: |
+          git config user.name "insightfulessays bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add essays.json
+          git commit -m "Add essay from issue #${{ github.event.issue.number }}"
+          git push
+      - name: Close the issue
+        if: success()
+        run: gh issue close ${{ github.event.issue.number }} --comment "Added. It will be live once Pages redeploys."
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Report failure
+        if: failure()
+        run: gh issue comment ${{ github.event.issue.number }} --body "The add script failed. See the Actions log."
+        env:
+          GH_TOKEN: ${{ github.token }}

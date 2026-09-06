@@ -1,0 +1,83 @@
+:root {
+  --paper: #faf7f1;
+  --ink: #1d1a16;
+  --muted: #6d665c;
+  --rule: #ddd6ca;
+  --accent: #8a3b12;
+  --chip: #efe9de;
+  --chip-on: #1d1a16;
+  --chip-on-ink: #faf7f1;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #171512;
+    --ink: #ece6da;
+    --muted: #9d958a;
+    --rule: #34302a;
+    --accent: #e0864f;
+    --chip: #262320;
+    --chip-on: #ece6da;
+    --chip-on-ink: #171512;
+  }
+}
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body {
+  margin: 0 auto;
+  max-width: 44rem;
+  padding: 3rem 1.25rem 4rem;
+  color: var(--ink);
+  font-family: Iowan Old Style, Palatino Linotype, "Book Antiqua", Georgia, serif;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+header h1 {
+  margin: 0 0 .75rem;
+  font-size: 2.25rem;
+  font-weight: 500;
+  letter-spacing: -.01em;
+}
+.lede { margin: 0; color: var(--muted); max-width: 38rem; }
+.controls { margin: 2.25rem 0 1.5rem; }
+#q {
+  width: 100%;
+  padding: .55rem .75rem;
+  font: inherit;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: .35rem;
+}
+#q:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .75rem; }
+.tags button {
+  font: inherit;
+  font-size: .85rem;
+  padding: .15rem .65rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--chip);
+  color: var(--ink);
+  cursor: pointer;
+}
+.tags button[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-ink); }
+article {
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--rule);
+}
+article h2 { margin: 0; font-size: 1.3rem; font-weight: 500; line-height: 1.3; }
+article h2 a { color: var(--ink); text-decoration: none; }
+article h2 a:hover { color: var(--accent); }
+.byline {
+  margin: .2rem 0 .75rem;
+  color: var(--muted);
+  font-size: .9rem;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.byline a { color: var(--muted); }
+.why { margin: 0; }
+.tagline { margin: .6rem 0 0; font-size: .8rem; color: var(--muted); font-family: ui-sans-serif, system-ui, sans-serif; }
+.tagline span { margin-right: .6rem; }
+.empty { color: var(--muted); padding: 2rem 0; }
+footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .9rem; }

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Insightful Essays</title>
+<meta name="description" content="A short, opinionated list of essays that are actually insightful, with a paragraph on what makes each one special.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <h1>Insightful Essays</h1>
+  <p class="lede">The internet is full of essays. Almost none of them are insightful. This is a short list of the ones that are, with a paragraph on what makes each one special. It grows by a handful a year.</p>
+</header>
+
+<nav class="controls" aria-label="Filter">
+  <input id="q" type="search" placeholder="Search title, author, or the reason it is here" aria-label="Search">
+  <div id="tags" class="tags" role="group" aria-label="Filter by tag"></div>
+</nav>
+
+<main id="list" aria-live="polite"></main>
+
+<footer>
+  <p><span id="count"></span> Every link is paired with a Wayback Machine snapshot requested the day it was added, so the list outlives the sites it points at.</p>
+</footer>
+<script src="app.js"></script>
+</body>
+</html>

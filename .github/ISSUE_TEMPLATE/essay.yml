@@ -1,0 +1,31 @@
+name: Add an essay
+description: Add an essay to insightfulessays.com
+title: "Add: "
+labels: [essay]
+body:
+  - type: input
+    id: url
+    attributes:
+      label: URL
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: One paragraph on what makes it special. This is the whole product.
+    validations:
+      required: true
+  - type: input
+    id: tags
+    attributes:
+      label: Tags
+      description: Comma separated, e.g. philosophy, music, sport
+  - type: input
+    id: title
+    attributes:
+      label: Title (optional, overrides the page's own)
+  - type: input
+    id: author
+    attributes:
+      label: Author (optional, overrides the page's own)
