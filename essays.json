@@ -5,6 +5,7 @@
     "author": "Ron Drummond",
     "url": "http://www.classical.net/music/comp.lst/articles/reicha/quartets/index.php",
     "source": "classical.net",
+    "published": null,
     "added": "2026-09-06",
     "tags": [
       "music",
@@ -19,6 +20,7 @@
     "author": "David Foster Wallace",
     "url": "https://www.esquire.com/sports/a5151/the-string-theory-david-foster-wallace/",
     "source": "esquire.com",
+    "published": "1996-07",
     "added": "2026-09-06",
     "tags": [
       "tennis",
@@ -33,6 +35,7 @@
     "author": "David Foster Wallace",
     "url": "https://www.nytimes.com/2006/08/20/sports/playmagazine/20federer.html",
     "source": "nytimes.com",
+    "published": "2006-08-20",
     "added": "2026-09-06",
     "tags": [
       "tennis",
@@ -47,6 +50,7 @@
     "author": "Kenny Felder",
     "url": "https://www.felderbooks.com/kennyessays/",
     "source": "felderbooks.com",
+    "published": null,
     "added": "2026-09-06",
     "tags": [
       "philosophy"

@@ -16,6 +16,9 @@
   const params = new URLSearchParams(location.search);
   let activeTag = params.get("tag") || null;
   q.value = params.get("q") || "";
+  // A permalink (#id) wins over any filter that would hide it.
+  const wanted = decodeURIComponent(location.hash.slice(1));
+  if (wanted && essays.some(e => e.id === wanted)) { activeTag = null; q.value = ""; }
 
   const tagCounts = {};
   for (const e of essays) for (const t of e.tags || []) tagCounts[t] = (tagCounts[t] || 0) + 1;
@@ -48,8 +51,8 @@
 
     list.innerHTML = shown.length ? shown.map(e => `
       <article id="${esc(e.id)}">
-        <h2><a href="${esc(e.url)}" rel="noopener">${esc(e.title)}</a></h2>
-        <p class="byline">${e.author ? esc(e.author) + " · " : ""}${esc(e.source)}${e.wayback ? ` · <a href="${esc(e.wayback)}" rel="noopener">archived copy</a>` : ""}</p>
+        <h2><a href="${esc(e.url)}" rel="noopener">${esc(e.title)}</a> <a class="anchor" href="#${esc(e.id)}" title="Link to this entry">#</a></h2>
+        <p class="byline">${e.author ? esc(e.author) + " · " : ""}${esc(e.source)}${e.published ? " · " + esc(String(e.published).slice(0, 4)) : ""}${e.wayback ? ` · <a href="${esc(e.wayback)}" rel="noopener">archived copy</a>` : ""}</p>
         <p class="why">${esc(e.why)}</p>
         ${(e.tags || []).length ? `<p class="tagline">${e.tags.map(t => `<span>#${esc(t)}</span>`).join("")}</p>` : ""}
       </article>`).join("")
@@ -68,4 +71,5 @@
 
   renderTags();
   render();
+  if (wanted) { const el = document.getElementById(wanted); if (el) el.scrollIntoView(); }
 })();

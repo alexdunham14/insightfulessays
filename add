@@ -3,6 +3,9 @@
 
     ./add URL --why "..." [--tags a,b] [--title ...] [--author ...] [--no-snapshot]
     ./add --backfill-snapshots
+    ./add --feed            # regenerate feed.xml only
+
+Every save of essays.json also rewrites feed.xml (Atom).
 
 Standard library only, so it runs the same on this machine and in GitHub Actions.
 """
@@ -64,6 +67,24 @@ def guess_author(page):
     return meta(page, "author", "article:author", "dc.creator", "citation_author", "parsely-author")
 
 
+def guess_published(page):
+    """ISO date (YYYY-MM-DD, or a bare year) from the page's metadata, or None. Never raises."""
+    try:
+        raw = meta(page, "article:published_time", "datePublished", "date", "dc.date", "dc.date.issued",
+                   "citation_publication_date", "sailthru.date", "parsely-pub-date")
+        if not raw:
+            m = re.search(r'"datePublished"\s*:\s*"([^"]+)"', page)
+            raw = m.group(1) if m else None
+        if not raw:
+            return None
+        m = re.match(r"(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?", raw.strip())
+        if not m:
+            return None
+        return "-".join(p for p in m.groups() if p)
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def slugify(s):
     s = re.sub(r"[^a-z0-9]+", "-", re.sub(r"['\u2019]", "", s.lower())).strip("-")
     return s[:60] or "essay"
@@ -107,6 +128,52 @@ def save(entries):
     with open(DATA, "w", encoding="utf-8") as f:
         json.dump(entries, f, ensure_ascii=False, indent=2)
         f.write("\n")
+    write_feed(entries)
+
+
+SITE = "https://insightfulessays.com"
+FEED = os.path.join(HERE, "feed.xml")
+
+
+def write_feed(entries):
+    """Atom feed of the list, newest first. The entry body is the paragraph on why it is here."""
+    x = html.escape
+    items = sorted(entries, key=lambda e: e.get("added") or "", reverse=True)
+    latest = (items[0].get("added") if items else dt.date.today().isoformat()) + "T00:00:00Z"
+    out = [
+        '<?xml version="1.0" encoding="utf-8"?>',
+        '<feed xmlns="http://www.w3.org/2005/Atom">',
+        "<title>Insightful Essays</title>",
+        "<subtitle>A short, opinionated list of essays that are actually insightful.</subtitle>",
+        f'<link href="{SITE}/"/>',
+        f'<link rel="self" href="{SITE}/feed.xml"/>',
+        f"<id>{SITE}/</id>",
+        f"<updated>{latest}</updated>",
+        "<author><name>Alex Dunham</name></author>",
+    ]
+    for e in items:
+        when = (e.get("added") or "1970-01-01") + "T00:00:00Z"
+        by = f" by {x(e['author'])}" if e.get("author") else ""
+        year = f" ({x(str(e['published'])[:4])})" if e.get("published") else ""
+        tags = "".join(f'<category term="{x(t)}"/>' for t in e.get("tags") or [])
+        body = (f"<p>{x(e.get('why') or '')}</p>"
+                f'<p><a href="{x(e["url"])}">{x(e["title"])}</a>{by}{year}, {x(e.get("source") or "")}'
+                + (f' · <a href="{x(e["wayback"])}">archived copy</a>' if e.get("wayback") else "") + "</p>")
+        out += [
+            "<entry>",
+            f"<title>{x(e['title'])}</title>",
+            f'<link href="{x(e["url"])}"/>',
+            f'<link rel="related" href="{SITE}/#{x(e["id"])}"/>',
+            f"<id>{SITE}/#{x(e['id'])}</id>",
+            f"<updated>{when}</updated>",
+            f"<published>{when}</published>",
+            tags,
+            f'<content type="html">{x(body)}</content>',
+            "</entry>",
+        ]
+    out.append("</feed>")
+    with open(FEED, "w", encoding="utf-8") as f:
+        f.write("\n".join(out) + "\n")
 
 
 def main():
@@ -118,9 +185,15 @@ def main():
     ap.add_argument("--author")
     ap.add_argument("--no-snapshot", action="store_true", help="skip the private local copy (CI)")
     ap.add_argument("--backfill-snapshots", action="store_true")
+    ap.add_argument("--feed", action="store_true", help="just regenerate feed.xml from essays.json")
     a = ap.parse_args()
 
     entries = load()
+
+    if a.feed:
+        write_feed(entries)
+        print("wrote", FEED)
+        return
 
     if a.backfill_snapshots:
         for e in entries:
@@ -141,11 +214,12 @@ def main():
         sys.exit(f"already listed: {url}")
 
     page = None
-    title, author = a.title, a.author
+    title, author, published = a.title, a.author, None
     try:
         page, final = fetch(url)
         title = title or guess_title(page)
         author = author or guess_author(page)
+        published = guess_published(page)
     except Exception as ex:  # noqa: BLE001
         print(f"could not fetch {url}: {ex}", file=sys.stderr)
         if not title:
@@ -157,6 +231,7 @@ def main():
         "author": author,
         "url": url,
         "source": urllib.parse.urlsplit(url).netloc.replace("www.", ""),
+        "published": published,
         "added": dt.date.today().isoformat(),
         "tags": [t.strip() for t in a.tags.split(",") if t.strip()],
         "why": a.why.strip(),

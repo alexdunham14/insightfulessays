@@ -69,6 +69,9 @@ article {
 article h2 { margin: 0; font-size: 1.3rem; font-weight: 500; line-height: 1.3; }
 article h2 a { color: var(--ink); text-decoration: none; }
 article h2 a:hover { color: var(--accent); }
+article h2 .anchor { color: var(--rule); font-weight: normal; font-size: .8em; }
+article h2 .anchor:hover { color: var(--accent); }
+article:target { border-left: 3px solid var(--accent); padding-left: 1rem; margin-left: -1.2rem; }
 .byline {
   margin: .2rem 0 .75rem;
   color: var(--muted);
@@ -80,4 +83,5 @@ article h2 a:hover { color: var(--accent); }
 .tagline { margin: .6rem 0 0; font-size: .8rem; color: var(--muted); font-family: ui-sans-serif, system-ui, sans-serif; }
 .tagline span { margin-right: .6rem; }
 .empty { color: var(--muted); padding: 2rem 0; }
+footer a { color: var(--muted); }
 footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .9rem; }
