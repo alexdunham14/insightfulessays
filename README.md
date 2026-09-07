@@ -1,5 +1,7 @@
 # insightfulessays.com
 
+Live at https://insightfulessays.com (insightfulessays.alexdunham14.workers.dev also serves it).
+
 A short, opinionated list of essays that are actually insightful, each with one
 paragraph on what makes it special. That paragraph is the product. The list is
 the opposite of a feed: it grows by a handful of entries a year.
