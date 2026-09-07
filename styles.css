@@ -86,3 +86,16 @@ article:target { border-left: 3px solid var(--accent); padding-left: 1rem; margi
 .empty { color: var(--muted); padding: 2rem 0; }
 footer a { color: var(--muted); }
 footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .9rem; }
+
+/* External links open a new tab and carry a box-and-arrow mark. */
+a[target="_blank"]::after {
+  content: "";
+  display: inline-block;
+  width: .65em;
+  height: .65em;
+  margin-left: .25em;
+  vertical-align: 0;
+  background-color: currentColor;
+  -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" fill="none" stroke="black" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 1.5H2a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5V7"/><path d="M7 1.5h3.5V5M10.5 1.5 5.5 6.5"/></svg>') no-repeat center / contain;
+  mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" fill="none" stroke="black" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 1.5H2a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5V7"/><path d="M7 1.5h3.5V5M10.5 1.5 5.5 6.5"/></svg>') no-repeat center / contain;
+}
