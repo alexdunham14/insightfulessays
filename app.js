@@ -52,12 +52,12 @@
     list.innerHTML = shown.length ? shown.map(e => `
       <article id="${esc(e.id)}">
         <h2><a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title)}</a> <a class="anchor" href="#${esc(e.id)}" title="Link to this entry">#</a></h2>
-        <p class="byline">${e.author ? esc(e.author) + " · " : ""}${esc(e.source)}${e.published ? " · " + esc(String(e.published).slice(0, 4)) : ""}${e.wayback ? ` · <a href="${esc(e.wayback)}" target="_blank" rel="noopener">archived copy</a>` : ""}</p>
+        <p class="byline">${e.author ? esc(e.author) + " · " : ""}${esc(e.source)}${e.published ? " · " + esc(String(e.published).slice(0, 4)) : ""}${e.wayback ? ` · <a href="${esc(e.wayback)}" target="_blank" rel="noopener">archived copy</a>` : ""}</p>
         <p class="why">${esc(e.why)}</p>
         ${(e.tags || []).length ? `<p class="tagline">${e.tags.map(t => `<span>#${esc(t)}</span>`).join("")}</p>` : ""}
       </article>`).join("")
       : '<p class="empty">Nothing matches.</p>';
-    count.textContent = `${essays.length} essay${essays.length === 1 ? "" : "s"}.`;
+    count.textContent = `${essays.length} essay${essays.length === 1 ? "" : "s"}. `;
   }
 
   tagsEl.addEventListener("click", ev => {
