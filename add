@@ -3,9 +3,10 @@
 
     ./add URL --why "..." [--tags a,b] [--title ...] [--author ...] [--no-snapshot]
     ./add --backfill-snapshots
-    ./add --feed            # regenerate feed.xml only
+    ./add --feed            # regenerate feed.xml and the static list only
 
-Every save of essays.json also rewrites feed.xml (Atom).
+Every save of essays.json also rewrites feed.xml (Atom) and the list inside
+index.html, so the page reads without JavaScript; app.js re-renders it on load.
 
 Standard library only, so it runs the same on this machine and in GitHub Actions.
 """
@@ -133,6 +134,7 @@ def save(entries):
 
 SITE = "https://insightfulessays.com"
 FEED = os.path.join(HERE, "feed.xml")
+INDEX = os.path.join(HERE, "index.html")
 
 
 def write_feed(entries):
@@ -176,6 +178,35 @@ def write_feed(entries):
         f.write("\n".join(out) + "\n")
 
 
+def write_static(entries):
+    """The essay list as static HTML inside index.html, same markup as app.js renders."""
+    x = html.escape
+    items = sorted(entries, key=lambda e: e.get("added") or "", reverse=True)
+    arts = []
+    for e in items:
+        by = (x(e["author"]) + ", ") if e.get("author") else ""
+        year = (", " + x(str(e["published"])[:4])) if e.get("published") else ""
+        arch = f', <a href="{x(e["wayback"])}" target="_blank" rel="noopener">archived copy</a>' if e.get("wayback") else ""
+        tags = "".join(f"<span>#{x(t)}</span>" for t in e.get("tags") or [])
+        arts.append(
+            f'<article id="{x(e["id"])}">\n'
+            f'  <h2><a href="{x(e["url"])}" target="_blank" rel="noopener">{x(e["title"])}</a> '
+            f'<a class="anchor" href="#{x(e["id"])}" title="Link to this entry">#</a></h2>\n'
+            f'  <p class="byline">{by}{x(e.get("source") or "")}{year}{arch}</p>\n'
+            f'  <p class="why">{x(e.get("why") or "")}</p>\n'
+            + (f'  <p class="tagline">{tags}</p>\n' if tags else "")
+            + "</article>")
+    n = len(items)
+    with open(INDEX, encoding="utf-8") as f:
+        page = f.read()
+    page, k1 = re.subn(r'(<main id="list" aria-live="polite">).*?(</main>)',
+                       lambda m: m.group(1) + "\n" + "\n".join(arts) + "\n" + m.group(2), page, flags=re.S)
+    page, k2 = re.subn(r'(<span id="count">)[^<]*', lambda m: m.group(1) + f"{n} essay{'' if n == 1 else 's'}. ", page)
+    assert k1 == 1 and k2 == 1, "index.html markers not found"
+    with open(INDEX, "w", encoding="utf-8") as f:
+        f.write(page)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("url", nargs="?")
@@ -185,14 +216,15 @@ def main():
     ap.add_argument("--author")
     ap.add_argument("--no-snapshot", action="store_true", help="skip the private local copy (CI)")
     ap.add_argument("--backfill-snapshots", action="store_true")
-    ap.add_argument("--feed", action="store_true", help="just regenerate feed.xml from essays.json")
+    ap.add_argument("--feed", action="store_true", help="just regenerate feed.xml and the static list in index.html from essays.json")
     a = ap.parse_args()
 
     entries = load()
 
     if a.feed:
         write_feed(entries)
-        print("wrote", FEED)
+        write_static(entries)
+        print("wrote", FEED, "and the list in", INDEX)
         return
 
     if a.backfill_snapshots:
