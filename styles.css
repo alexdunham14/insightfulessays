@@ -1,12 +1,12 @@
 :root {
-  --paper: #faf7f1;
-  --ink: #1d1a16;
-  --muted: #6d665c;
-  --rule: #ddd6ca;
+  --paper: #fff;
+  --ink: #111;
+  --muted: #666;
+  --rule: #ddd;
   --accent: #8a3b12;
-  --chip: #efe9de;
-  --chip-on: #1d1a16;
-  --chip-on-ink: #faf7f1;
+  --chip: #f0f0f0;
+  --chip-on: #111;
+  --chip-on-ink: #fff;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
